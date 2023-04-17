@@ -8,6 +8,9 @@
       "48": "icon48.png"
     }
   },
+  "background": {
+    "service_worker": "background.bundle.js"
+  },
   "permissions": ["activeTab", "tabs", "storage"],
   "content_scripts": [
     {

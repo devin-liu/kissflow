@@ -1,9 +1,3 @@
-const visitDurationMap: { [url: string]: number } = {};
-
-const saveVisitDuration = async () => {
-  await chrome.storage.local.set({ visitDurationMap });
-};
-
 const hideLinks = (linksToHide: string[]) => {
   const links = document.querySelectorAll("a");
 
@@ -15,38 +9,41 @@ const hideLinks = (linksToHide: string[]) => {
   });
 };
 
-const trackLinks = () => {
-  document.querySelectorAll("a").forEach((link) => {
-    link.addEventListener("click", async (e) => {
-      const currentUrl = window.location.href;
-      const startTime = Date.now();
-      e.preventDefault();
+// const trackLinks = () => {
+//   document.querySelectorAll("a").forEach((link) => {
+//     link.addEventListener("click", async (e) => {
+//       const currentUrl = window.location.href;
+//       const startTime = Date.now();
+//       e.preventDefault();
 
-      setTimeout(() => {
-        const duration = Date.now() - startTime;
-        visitDurationMap[currentUrl] = duration;
-        saveVisitDuration();
+//       setTimeout(() => {
+//         const duration = Date.now() - startTime;
+//         visitDurationMap[currentUrl] = duration;
+//         saveVisitDuration();
 
-        if (duration < 10000) {
-          hideLinks([currentUrl]);
-        }
+//         if (duration < 10000) {
+//           hideLinks([currentUrl]);
+//         }
 
-        window.location.href = link.getAttribute("href") || "";
-      }, 10);
-    });
-  });
-};
+//         window.location.href = link.getAttribute("href") || "";
+//       }, 10);
+//     });
+//   });
+// };
 
 const init = async () => {
-  console.log("init2");
-  const data = await chrome.storage.local.get("visitDurationMap");
-  console.log("data", data);
-  Object.assign(visitDurationMap, data.visitDurationMap || {});
+  const visitDurationMap = await chrome.storage.local.get("visitDurationMap");
+  console.log("data", visitDurationMap);
 
-  trackLinks();
+  const linksToHide = Object.keys(visitDurationMap).filter(
+    (url) => visitDurationMap[url] && visitDurationMap[url] < 10000
+  );
+  console.log("linksToHide", linksToHide);
+  hideLinks(linksToHide);
+  //   trackLinks();
 };
 
-console.log("init1");
+// console.log("init1");
 
 init();
 
