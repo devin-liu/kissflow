@@ -1,4 +1,4 @@
-import { TableData, TableDataMessage } from "../types/table";
+import { TableData } from "../types";
 
 // Download file
 const downloadFile = (url: string, filename: string) => {
@@ -42,7 +42,7 @@ export const extractTables = (): TableData[] => {
     // Show row in console
     console.log(`Table ${index + 1}: Is this the correct row information?`);
 
-    results.push({ headers, rows });
+    results.push(rows);
   });
 
   return results;

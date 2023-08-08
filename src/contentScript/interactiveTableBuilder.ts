@@ -1,50 +1,5 @@
-interface TableAction {
-  type: string;
-  payload: string;
-  url: string;
-  targetElement: string;
-}
-
-class DataStore {
-  private data: string[][] = [];
-  private headers: string[] = [];
-  private actions: TableAction[] = [];
-
-  addRow(row: string[]): void {
-    this.data.push(row);
-  }
-
-  setHeaders(headers: string[]): void {
-    this.headers = headers;
-  }
-
-  get dataStore(): string[][] {
-    return this.data;
-  }
-
-  get headersStore(): string[] {
-    return this.headers;
-  }
-
-  get actionsStore(): TableAction[] {
-    return this.actions;
-  }
-
-  trackAction(action: string, payload: string, targetElement: string): void {
-    try {
-      this.actions.push({
-        type: action,
-        payload,
-        url: window.location.href,
-        targetElement,
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  // More methods can be added later to export to CSV, etc.
-}
+import DataStore from "../DataStore";
+import injectTablePreview from "../injectTablePreview";
 
 const dataStore = new DataStore();
 
@@ -70,8 +25,10 @@ function watchTables() {
 
 if (document.readyState === "complete") {
   watchTables();
+  injectTablePreview();
 } else {
   window.addEventListener("load", watchTables);
+  window.addEventListener("load", injectTablePreview);
 }
 
 function normalizeRowDataToTableHeaders(
@@ -159,6 +116,13 @@ function handleTableClick(event: MouseEvent): void {
   //   const normalizedRowData = normalizeRowDataToTableHeaders(rowData, headers);
   //   dataStore.addRow(normalizedRowData);
 
+  // send data to background script
+  console.log("Sending data to background script");
+  chrome.runtime.sendMessage({
+    action: "updateDataStore",
+    data: dataStore,
+  });
+
   console.log("Stored headers:", dataStore.headersStore);
   console.log("Stored data:", dataStore.dataStore);
   console.log("Stored actions:", dataStore.actionsStore);
@@ -171,12 +135,6 @@ function extractTheadContent(thead: HTMLTableSectionElement): string[] {
   });
 
   return headers;
-}
-
-function extractHeaders(table: HTMLTableElement): string[] {
-  const thead = table.querySelector("thead");
-  if (!thead) return [];
-  return extractTheadContent(thead);
 }
 
 function extractRowData(row: HTMLTableRowElement): string[] {

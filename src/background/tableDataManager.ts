@@ -1,4 +1,7 @@
-import { TableData } from "../types/table";
+import DataStore from "../DataStore";
+import { TableData } from "../types";
+
+let dataStore = new DataStore();
 
 chrome.action.onClicked.addListener((tab) => {
   if (tab.id === undefined || tab.url === undefined) return;
@@ -20,10 +23,7 @@ chrome.action.onClicked.addListener((tab) => {
           if (!tables) return;
           tables.forEach((table, index) => {
             // Create CSV
-            let csvContent = table.headers.join(",") + "\n";
-            table.rows.forEach((row) => {
-              csvContent += row.join(",") + "\n";
-            });
+            let csvContent = table.join(",") + "\n";
 
             // Create Blob and URL
             const blob = new Blob([csvContent], { type: "text/csv" });
@@ -45,6 +45,27 @@ chrome.action.onClicked.addListener((tab) => {
 chrome.runtime.onMessage.addListener((request) => {
   if (request.action === "tabClosed") {
     // Handle tab close if needed
+  }
+
+  if (request.action === "updateDataStore") {
+    // Handle data store update
+    dataStore = request.data;
+  }
+
+  if (
+    request.action === "previewDataStore" ||
+    request.action === "updateDataStore"
+  ) {
+    // send dataStore to content script postmessage
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs.length) return;
+      const tab = tabs[0];
+      if (!tab.id) return;
+      chrome.tabs.sendMessage(tab.id, {
+        action: "previewDataStore",
+        data: dataStore,
+      });
+    });
   }
 });
 
