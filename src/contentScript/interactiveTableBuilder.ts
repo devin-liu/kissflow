@@ -1,6 +1,14 @@
+interface TableAction {
+  type: string;
+  payload: string;
+  url: string;
+  targetElement: string;
+}
+
 class DataStore {
   private data: string[][] = [];
   private headers: string[] = [];
+  private actions: TableAction[] = [];
 
   addRow(row: string[]): void {
     this.data.push(row);
@@ -16,6 +24,23 @@ class DataStore {
 
   get headersStore(): string[] {
     return this.headers;
+  }
+
+  get actionsStore(): TableAction[] {
+    return this.actions;
+  }
+
+  trackAction(action: string, payload: string, targetElement: string): void {
+    try {
+      this.actions.push({
+        type: action,
+        payload,
+        url: window.location.href,
+        targetElement,
+      });
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   // More methods can be added later to export to CSV, etc.
@@ -63,6 +88,39 @@ function normalizeRowDataToTableHeaders(
   return normalizedRowData;
 }
 
+// function that checks for table headers and adds them to the data store
+function checkForHeaders(table: HTMLTableElement): void {
+  const thead = table.querySelector("thead");
+  if (!thead) return;
+  const headers = extractTheadContent(thead);
+  dataStore.setHeaders(headers);
+  dataStore.trackAction(
+    "setHeaders",
+    headers.toString(),
+    (thead.cloneNode() as HTMLTableSectionElement).outerHTML
+  );
+}
+
+// function for if a header row is clicked, set headers
+function handleHeaderClick(event: MouseEvent): void {
+  console.log("handleHeaderClick", event.target);
+  const target = event.target as HTMLElement;
+  const row = target.closest("tr");
+
+  if (!row) return;
+
+  const theadElement = row.closest("thead");
+  if (!theadElement) return;
+
+  const headers = extractTheadContent(theadElement);
+  dataStore.setHeaders(headers);
+  dataStore.trackAction(
+    "setHeaders",
+    headers.toString(),
+    (theadElement.cloneNode() as HTMLTableSectionElement).outerHTML
+  );
+}
+
 function handleTableClick(event: MouseEvent): void {
   console.log("handleTableClick", event.target);
   const target = event.target as HTMLElement;
@@ -70,34 +128,40 @@ function handleTableClick(event: MouseEvent): void {
 
   if (!row) return;
 
-  // If a header row is clicked, set headers and return
-  const theadElement = row.closest("thead");
-  if (theadElement) {
-    if (dataStore.headersStore.length) return;
-    const headers = extractTheadContent(theadElement);
-    dataStore.setHeaders(headers);
-    return;
-  }
-
   const tableElement = row.closest("table");
-
   console.log("tableElement", tableElement);
 
   if (!tableElement) return;
 
-  const headers = extractHeaders(tableElement);
-  const rowData = extractRowData(row);
-
-  if (!dataStore.headersStore.length) {
-    dataStore.setHeaders(headers);
+  const noHeaders = !dataStore.headersStore.length;
+  if (noHeaders) {
+    checkForHeaders(tableElement);
   }
+
+  // If a header row is clicked, return
+  const theadElement = row.closest("thead");
+  if (theadElement) {
+    handleHeaderClick(event);
+    return;
+  }
+
+  const rowData = extractRowData(row);
+  console.log("rowData", rowData);
+
   dataStore.addRow(rowData);
+  dataStore.trackAction(
+    "addRow",
+    rowData.toString(),
+    (row.cloneNode() as HTMLTableRowElement).outerHTML
+  );
 
   //   TODO:: normalize row data to headers
   //   const normalizedRowData = normalizeRowDataToTableHeaders(rowData, headers);
   //   dataStore.addRow(normalizedRowData);
 
-  console.log("Stored data:", dataStore.headersStore, dataStore.dataStore);
+  console.log("Stored headers:", dataStore.headersStore);
+  console.log("Stored data:", dataStore.dataStore);
+  console.log("Stored actions:", dataStore.actionsStore);
 }
 
 function extractTheadContent(thead: HTMLTableSectionElement): string[] {
@@ -111,7 +175,8 @@ function extractTheadContent(thead: HTMLTableSectionElement): string[] {
 
 function extractHeaders(table: HTMLTableElement): string[] {
   const thead = table.querySelector("thead");
-  return extractTheadContent(thead!);
+  if (!thead) return [];
+  return extractTheadContent(thead);
 }
 
 function extractRowData(row: HTMLTableRowElement): string[] {
