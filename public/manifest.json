@@ -3,15 +3,12 @@
   "name": "Kiss Flow",
   "version": "1.0",
   "action": {
-    "default_popup": "index.html",
-    "default_icon": {
-      "48": "icon48.png"
-    }
+    "default_title": "Kiss Flow"
   },
   "background": {
     "service_worker": "background.bundle.js"
   },
-  "permissions": ["activeTab", "tabs", "storage"],
+  "permissions": ["activeTab", "tabs", "storage", "history", "scripting"],
   "content_scripts": [
     {
       "matches": ["https://*/*", "http://*/*"],
