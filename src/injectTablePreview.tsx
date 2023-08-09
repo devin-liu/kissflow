@@ -11,20 +11,12 @@ export default function injectTablePreview() {
   preview.style.position = "sticky";
   preview.style.top = "0";
   preview.style.right = "0";
-  preview.style.width = "300px";
+  preview.style.width = "100vw";
   preview.style.background = "white";
   preview.style.height = "fit-content";
-  preview.style.minHeight = "20vh";
-
-  // position: sticky;
-  // top: 0%;
-  // left: 0;
-  // right: 0px;
-  // width: 100vw;
-  // background: white;
-  // height: 30vh;
-  // z-index: 5;
-  // overflow: scroll;
+  preview.style.zIndex = "10";
+  preview.style.maxHeight = "20vh";
+  preview.style.overflow = "auto";
 
   document.body.prepend(preview);
 
