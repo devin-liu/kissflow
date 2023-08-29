@@ -1,14 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "Kiss Flow",
+  "name": "Everyday AI",
   "version": "1.0",
   "action": {
-    "default_title": "Kiss Flow"
+    "default_title": "Everyday AI"
   },
   "background": {
     "service_worker": "background.bundle.js"
   },
-  "permissions": ["activeTab", "tabs", "storage", "history", "scripting"],
+  "permissions": ["activeTab", "tabs", "storage", "history", "scripting", "downloads"],
   "content_scripts": [
     {
       "matches": ["https://*/*", "http://*/*"],

@@ -3,6 +3,69 @@ import injectTablePreview from "../injectTablePreview";
 
 const dataStore = new DataStore();
 
+function trackTextInput(textInput: HTMLInputElement) {
+  let beforeValue = "";
+  let afterValue = "";
+
+  // Debounce function
+  const debounce = (
+    func: { (): void; apply?: any },
+    delay: number | undefined
+  ) => {
+    let timeout: string | number | NodeJS.Timeout | undefined;
+    return function (...args: any) {
+      clearTimeout(timeout);
+      // @ts-ignore
+      timeout = setTimeout(() => func.apply(this, args), delay);
+    };
+  };
+
+  // Event listener function
+  const handleInput = (event: { target: any }) => {
+    const inputElement = event.target;
+
+    // When the user first interacts, save the before value
+    if (beforeValue === "") {
+      beforeValue = inputElement.value;
+    }
+
+    // Use the debounced function to save the after value
+    const debouncedSaveAfter = debounce(() => {
+      afterValue = inputElement.value;
+      console.log("Before:", beforeValue);
+      console.log("After:", afterValue);
+      console.log("URL:", window.location.href);
+
+      // Reset beforeValue for the next interaction
+      beforeValue = "";
+    }, 50);
+
+    debouncedSaveAfter();
+  };
+
+  // Add event listeners
+  textInput.addEventListener("input", handleInput);
+}
+
+// // watch for edits to text inputs
+function watchTextEdits() {
+  document.querySelectorAll("input").forEach((input) => {
+    trackTextInput(input);
+  });
+
+  // A mutation observer that checks for new input elements
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node instanceof HTMLInputElement) {
+          trackTextInput(node);
+        }
+      });
+    });
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+}
+
 function watchTables() {
   console.log("interactiveTableBuilder.ts");
   // Add event listeners to existing tables
@@ -23,12 +86,16 @@ function watchTables() {
   observer.observe(document.body, { childList: true, subtree: true });
 }
 
-if (document.readyState === "complete") {
+function handleLoad() {
   watchTables();
   injectTablePreview();
+  watchTextEdits();
+}
+
+if (document.readyState === "complete") {
+  handleLoad();
 } else {
-  window.addEventListener("load", watchTables);
-  window.addEventListener("load", injectTablePreview);
+  window.addEventListener("load", handleLoad);
 }
 
 function normalizeRowDataToTableHeaders(

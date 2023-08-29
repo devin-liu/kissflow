@@ -5,41 +5,49 @@ let dataStore = new DataStore();
 
 chrome.action.onClicked.addListener((tab) => {
   if (tab.id === undefined || tab.url === undefined) return;
+
+  // TODO:: move this to content script
+  // send a message to the active tab and have content script run the download
+
+  const tabUrl = tab.url;
   console.log("clicked tablemanager");
-  // Inject content script
-  chrome.scripting
-    .executeScript({
-      target: { tabId: tab.id, allFrames: true },
-      files: ["contentScript.bundle.js"],
-    })
-    .then(() => {
-      if (!tab.id || typeof tab.url !== "string") return;
-      const tabId = tab.id;
-      const tabUrl = tab.url;
-      chrome.tabs.sendMessage(
-        tabId,
-        { action: "extractTables" },
-        (tables: TableData[]) => {
-          if (!tables) return;
-          tables.forEach((table, index) => {
-            // Create CSV
-            let csvContent = table.join(",") + "\n";
+  // Create CSV
+  const csvHeader = (dataStore.headersStore || []).join(",");
+  const csvRows = (dataStore.dataStore || []).map((row) => row.join(","));
+  let csvContent = csvHeader + "\n" + csvRows.join("\n");
 
-            // Create Blob and URL
-            const blob = new Blob([csvContent], { type: "text/csv" });
-            const url = URL.createObjectURL(blob);
+  // Create Blob and URL
+  const blob = new Blob([csvContent], { type: "text/csv" });
 
-            // Construct filename
-            const domain = new URL(tabUrl).hostname;
-            const date = new Date().toISOString();
-            const filename = `${domain}_${date}_table_${index + 1}.csv`;
+  // Construct filename
+  const domain = new URL(tabUrl).hostname;
+  // today's date in mm-dd-yyyy format
+  const date = new Date().toLocaleDateString("en-US");
+  const filename = `${domain}_${date}_table.csv`;
 
-            // Download the file
-            chrome.downloads.download({ url, filename });
-          });
-        }
-      );
+  // Download the file
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const buffer = reader.result;
+    // check for buffer being ArrayBufferLike
+    if (!(buffer instanceof ArrayBuffer)) return;
+    const blobUrl = `data:${blob.type};base64,${btoa(
+      new Uint8Array(buffer).reduce(
+        (data, byte) => data + String.fromCharCode(byte),
+        ""
+      )
+    )}`;
+
+    // not really working
+    chrome.downloads.download({
+      url: blobUrl,
+      filename,
+      saveAs: true,
+      conflictAction: "uniquify",
     });
+  };
+  reader.readAsArrayBuffer(blob);
 });
 
 chrome.runtime.onMessage.addListener((request) => {
